@@ -1,0 +1,325 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator nestgraphql {
+  provider                = "node node_modules/prisma-nestjs-graphql"
+  output                  = "../src/@generated"
+  // purgeOutput                   = false
+  // combineScalarFilters          = true
+  emitSingle              = true
+  noAtomicOperations      = true
+  // field validator
+  fields_Validator_input  = true
+  fields_Validator_output = true
+  fields_Validator_model  = true
+  fields_Validator_from   = "class-validator"
+  // Args where|data nested validator
+  decorate_1_type         = "*Args"
+  decorate_1_field        = "@(data|where)"
+  decorate_1_name         = ValidateNested
+  decorate_1_from         = "class-validator"
+  decorate_1_arguments    = "['{ each: true }']"
+}
+
+model User {
+  id        String     @id @unique @default(cuid())
+  /// @HideField({ input: true})
+  createdAt DateTime   @default(now())
+  /// @HideField({ input: true})
+  updatedAt DateTime   @updatedAt
+  /// @Validator.IsEmail()
+  email     String     @unique
+  /// @Validator.IsString()
+  /// @Validator.MaxLength(100)
+  /// @Validator.MinLength(3)
+  name      String
+  /// @Validator.IsString()
+  /// @Validator.MaxLength(100)
+  /// @Validator.MinLength(8)
+  /// @HideField()
+  password  String
+  /// @Validator.IsString()
+  /// @Validator.MaxLength(100)
+  /// @Validator.MinLength(3)
+  /// @Validator.IsMobilePhone()
+  phone     String     @unique
+  ///@Validator.IsEnum(EnumRole, { each: true })
+  ///@Validator.ArrayUnique()
+  roles     EnumRole[]
+  orders    Order[]
+}
+
+model Good {
+  id          String   @id @unique @default(cuid())
+  /// @HideField({ input: true})
+  createdAt   DateTime @default(now())
+  /// @HideField({ input: true})
+  updatedAt   DateTime @updatedAt
+  /// @Validator.IsString()
+  /// @Validator.MaxLength(100)
+  /// @Validator.MinLength(3)
+  name        String   @unique
+  /// @Validator.IsString()
+  /// @Validator.MaxLength(512)
+  /// @Validator.MinLength(3)
+  description String   @default("")
+
+  price      Decimal     @db.Decimal(10, 2)
+  /// @Validator.IsString({each: true})
+  /// @Validator.@ArrayMaxSize(5)
+  images     String[]
+  /// @Validator.IsString()
+  /// @Validator.MaxLength(100)
+  /// @Validator.MinLength(3)
+  slug       String      @unique
+  orderItems OrderItem[]
+  category   Category    @relation(fields: [categoryId], references: [id])
+  categoryId String
+}
+
+model CustomerDish {
+  id               String      @id @unique @default(cuid())
+  /// @HideField({ input: true})
+  createdAt        DateTime    @default(now())
+  /// @HideField({ input: true})
+  updatedAt        DateTime    @updatedAt
+  parentDish       Dish        @relation(fields: [dishId], references: [id])
+  selectedOption   Options     @relation(fields: [optionsId], references: [id])
+  dishId           String
+  optionsId        String
+  selectedToppings Topping[]
+  price            Decimal     @db.Decimal(10, 2)
+  orderItems       OrderItem[]
+}
+
+model Dish {
+  id          String   @id @unique @default(cuid())
+  /// @HideField({ input: true})
+  createdAt   DateTime @default(now())
+  /// @HideField({ input: true})
+  updatedAt   DateTime @updatedAt
+  /// @Validator.IsString()
+  /// @Validator.MaxLength(100)
+  /// @Validator.MinLength(3)
+  name        String   @unique
+  /// @Validator.IsString()
+  /// @Validator.MaxLength(512)
+  /// @Validator.MinLength(3)
+  description String   @default("")
+
+  price  Decimal  @db.Decimal(10, 2)
+  /// @Validator.IsString({each: true})
+  /// @Validator.@ArrayMaxSize(5)
+  images String[]
+  /// @Validator.IsString()
+  /// @Validator.MaxLength(100)
+  /// @Validator.MinLength(3)
+  slug   String   @unique
+
+  options Options[]
+
+  category       Category          @relation(fields: [categoryId], references: [id])
+  categoryId     String
+  ingradients    IngradientLabel[]
+  customerDishes CustomerDish[]
+}
+
+model Options {
+  id          String   @id @unique @default(cuid())
+  /// @HideField({ input: true})
+  createdAt   DateTime @default(now())
+  /// @HideField({ input: true})
+  updatedAt   DateTime @updatedAt
+  /// @Validator.IsString()
+  /// @Validator.MaxLength(100)
+  /// @Validator.MinLength(3)
+  name        String
+  /// @Validator.IsString()
+  /// @Validator.MaxLength(512)
+  /// @Validator.MinLength(3)
+  description String   @default("")
+
+  price Decimal @db.Decimal(10, 2)
+
+  dishes       Dish[]
+  toppings     Topping[]
+  CustomerDish CustomerDish[]
+}
+
+model Topping {
+  id        String   @id @unique @default(cuid())
+  /// @HideField({ input: true})
+  createdAt DateTime @default(now())
+  /// @HideField({ input: true})
+  updatedAt DateTime @updatedAt
+
+  /// @Validator.IsString()
+  /// @Validator.MaxLength(512)
+  /// @Validator.MinLength(3)
+  description String?
+  /// @Validator.IsString()
+  /// @Validator.MaxLength(100)
+  /// @Validator.MinLength(3)
+  name        String?
+  price       Decimal @db.Decimal(10, 2)
+
+  option            Options         @relation(fields: [optionId], references: [id])
+  optionId          String
+  ingredientLabel   IngradientLabel @relation(fields: [ingredientLabelId], references: [id])
+  ingredientLabelId String
+  customerDishes    CustomerDish[]
+}
+
+model IngradientLabel {
+  id        String    @id @unique @default(cuid())
+  /// @HideField({ input: true})
+  createdAt DateTime  @default(now())
+  /// @HideField({ input: true})
+  updatedAt DateTime  @updatedAt
+  /// @Validator.IsString()
+  /// @Validator.MaxLength(100)
+  /// @Validator.MinLength(3)
+  name      String    @unique
+  image     String
+  toppings  Topping[]
+  dishes    Dish[]
+}
+
+// model ProductComposition {
+//   dish              Dish            @relation(fields: [dishId], references: [id])
+//   dishId            String
+//   IngradientLabel   IngradientLabel @relation(fields: [ingradientLabelId], references: [id])
+//   ingradientLabelId String
+//
+//   @@id([dishId, ingradientLabelId])
+// }
+
+model Category {
+  id        String   @id @unique @default(cuid())
+  /// @HideField({ input: true})
+  createdAt DateTime @default(now())
+  /// @HideField({ input: true})
+  updatedAt DateTime @updatedAt
+  /// @Validator.IsString()
+  /// @Validator.MaxLength(100)
+  /// @Validator.MinLength(3)
+  name      String   @unique
+  image     String
+  dishes    Dish[]
+  goods     Good[]
+}
+
+model Restaurant {
+  id        String   @id @unique @default(cuid())
+  /// @HideField({ input: true})
+  createdAt DateTime @default(now())
+  /// @HideField({ input: true})
+  updatedAt DateTime @updatedAt
+  /// @Validator.IsString()
+  /// @Validator.MaxLength(100)
+  /// @Validator.MinLength(3)
+  name      String   @unique
+  /// @Validator.IsString()
+  /// @Validator.MaxLength(100)
+  /// @Validator.MinLength(3)
+  address   String
+  /// @Validator.IsString()
+  /// @Validator.MaxLength(100)
+  /// @Validator.MinLength(3)
+  city      String
+
+  order Order[]
+}
+
+model Order {
+  id     String @id @unique @default(cuid())
+  number Int    @unique @default(autoincrement())
+
+  createdAt DateTime @default(now())
+
+  updatedAt   DateTime        @updatedAt
+  ///@Validator.IsEnum(EnumOrderStatus)
+  status      EnumOrderStatus @default(PENDING)
+  ///@Validator.IsEnum(EnumOrderType)
+  orderType   EnumOrderType   @default(DELIVERY)
+  ///@Validator.IsEnum(EnumPaymentType)
+  paymentType EnumPaymentType @default(CASH)
+
+  totalPrice      Decimal @db.Decimal(10, 2)
+  /// @Validator.IsString()
+  /// @Validator.MaxLength(512)
+  description     String  @default("")
+  /// @Validator.IsString()
+  /// @Validator.MaxLength(512)
+  deliveryAddress String  @default("")
+
+  changeFor Decimal @default(0) @db.Decimal(10, 2)
+
+  items OrderItem[]
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  restaurantId String
+}
+
+model OrderItem {
+  id        String   @id @unique @default(cuid())
+  /// @HideField({ input: true})
+  createdAt DateTime @default(now())
+  /// @HideField({ input: true})
+  updatedAt DateTime @updatedAt
+  /// @Validator.@IsDefined()
+  /// @Validator.@IsInt()
+  /// @Validator.@NotEquals(0)
+  /// @Validator.@Min(-1)
+  /// @Validator.@Max(10)
+  quantity  Int
+
+  price Decimal @db.Decimal(10, 2)
+
+  order   Order  @relation(fields: [orderId], references: [id])
+  orderId String
+
+  good   Good?   @relation(fields: [goodId], references: [id])
+  goodId String?
+
+  customerDish   CustomerDish? @relation(fields: [customerDishId], references: [id])
+  customerDishId String?
+}
+
+enum EnumOrderStatus {
+  PENDING
+  SHIPPED
+  COMPLETED
+  CANCELED
+}
+
+enum EnumOrderType {
+  DELIVERY
+  PICKUP
+}
+
+enum EnumPaymentType {
+  CASH
+  CARD
+}
+
+enum EnumRole {
+  USER
+  ADMIN
+}
+
+// Dish Order OrderItem Category
+// Restraunt
+// Order type
